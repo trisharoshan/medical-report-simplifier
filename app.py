@@ -63,18 +63,25 @@ def ocr_pdf(pdf_bytes):
         ocr_text += pytesseract.image_to_string(img) + "\n"
     return ocr_text
 
+
 def parse_report_lines(report_text):
     results = {}
     for line in report_text.split("\n"):
         if ":" in line:
             key, value = line.split(":", 1)
             key = key.strip()
-            value = value.strip().split()[0]
+            value = value.strip()
+            if not value:  # skip if empty after colon
+                continue
+            parts = value.split()
+            if not parts:  # extra guard
+                continue
             try:
-                results[key] = float(value)
+                results[key] = float(parts[0])
             except ValueError:
                 continue
     return results
+
 
 def normalize_test_name(test_name):
     if test_name in ALIAS:
