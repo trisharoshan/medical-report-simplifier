@@ -6,15 +6,16 @@ from io import BytesIO
 import pytesseract
 from pdf2image import convert_from_bytes
 from transformers import pipeline
+import torch
 
-st.title("AI-Powered Medical Report Simplifier (Streamlit + OCR)")
+st.title("AI-Powered Medical Report Simplifier 🩺")
 
 # -------------------------------
-# Load lightweight Hugging Face model (works on Streamlit Cloud)
+# Load Hugging Face model
 # -------------------------------
 @st.cache_resource
 def load_model():
-    return pipeline("text2text-generation", model="google/flan-t5-small")
+    return pipeline("text2text-generation", model="google/flan-t5-large")
 
 generator = load_model()
 
@@ -63,7 +64,6 @@ def ocr_pdf(pdf_bytes):
         ocr_text += pytesseract.image_to_string(img) + "\n"
     return ocr_text
 
-
 def parse_report_lines(report_text):
     results = {}
     for line in report_text.split("\n"):
@@ -71,17 +71,16 @@ def parse_report_lines(report_text):
             key, value = line.split(":", 1)
             key = key.strip()
             value = value.strip()
-            if not value:  # skip if empty after colon
+            if not value:
                 continue
             parts = value.split()
-            if not parts:  # extra guard
+            if not parts:
                 continue
             try:
                 results[key] = float(parts[0])
             except ValueError:
                 continue
     return results
-
 
 def normalize_test_name(test_name):
     if test_name in ALIAS:
@@ -117,16 +116,18 @@ def display_results_table(normalized_results, abnormalities):
     data = []
     for test, value in normalized_results.items():
         if test in abnormalities:
-            status = abnormalities[test].split(' ')[-1]
-            data.append((test, value, status))
+            status = f"⚠️ {abnormalities[test].split(' ')[-1]}"
         else:
-            data.append((test, value, "Normal"))
+            status = "✅ Normal"
+        data.append((test, value, status))
+
     df = pd.DataFrame(data, columns=["Test", "Value", "Status"])
+
     def highlight_abnormal(val):
-        if val == "Low" or val == "High":
-            return 'color: red'
+        if "⚠️" in str(val):
+            return 'color: red; font-weight: bold'
         else:
-            return ''
+            return 'color: green'
     st.dataframe(df.style.applymap(highlight_abnormal, subset=['Status']))
 
 # -------------------------------
@@ -137,41 +138,75 @@ uploaded_file = st.file_uploader("Upload your medical report PDF", type="pdf")
 if uploaded_file:
     pdf_bytes = uploaded_file.read()
     full_text = extract_text_from_pdf(pdf_bytes)
+
     st.subheader("Original Report Preview (first 500 chars)")
     st.text(full_text[:500])
 
     reader = PyPDF2.PdfReader(BytesIO(pdf_bytes))
-    for i, page in enumerate(reader.pages):
+
+    all_results = {}
+    all_abnormalities = {}
+
+    # ---- Collect results from all pages ----
+    for page in reader.pages:
         page_text = page.extract_text()
         if not page_text or not page_text.strip():
             page_text = ocr_pdf(pdf_bytes)
 
-        st.markdown(f"### Page {i+1}")
         parsed_results = parse_report_lines(page_text)
         if not parsed_results:
-            st.text("No numeric results detected on this page.")
             continue
 
         normalized_results, abnormalities = detect_abnormal_results(parsed_results)
-        report_type = detect_report_type(normalized_results)
+
+        # Merge into one big dict
+        all_results.update(normalized_results)
+        all_abnormalities.update(abnormalities)
+
+    # ---- Show results + single summary ----
+    if all_results:
+        report_type = detect_report_type(all_results)
         st.subheader(f"Detected Report Type: {report_type}")
-        display_results_table(normalized_results, abnormalities)
 
+        # Show results table once
+        display_results_table(all_results, all_abnormalities)
+
+        # ---- Prompt for unified summary ----
         prompt = f"""
-        You are a medical assistant. Simplify this {report_type} for a patient in plain language.
-        Highlight abnormal results and explain them clearly. Example: "Your hemoglobin is low => possible anemia."
+        Summarize this {report_type} medical report in ONE non-repetitive explanation for the patient.
 
-        Medical report (page {i+1}):
-        {page_text}
+        Follow this exact format:
 
-        Abnormal results (if any):
-        {abnormalities}
+        ✅ Normal Results:
+        - TestName: short note
 
-        Simplified explanation:
+        ⚠️ Abnormal Results:
+        - TestName: short explanation of why high/low matters
+
+        🩺 Overall Health Impression:
+        - 2–3 simple sentences of advice
+
+        Do not repeat the same test more than once.
+        Do not rephrase abnormalities multiple times.
+        Use plain, friendly language.
+
+        Test results:
+        {all_results}
+
+        Abnormal results:
+        {all_abnormalities}
         """
 
-        with st.spinner(f"Simplifying report on page {i+1}..."):
-            result = generator(prompt, max_length=500)
-            simplified = result[0]["generated_text"]
-            st.subheader("Patient-Friendly Explanation")
-            st.text(simplified)
+        with st.spinner("Generating final summary..."):
+            simplified = generator(
+                prompt,
+                max_new_tokens=350,
+                do_sample=False,   # no randomness
+                temperature=0.0    # deterministic & concise
+            )[0]['generated_text']
+
+        st.subheader("Final Patient-Friendly Summary")
+        st.markdown(simplified)
+
+    else:
+        st.warning("No test results detected in the uploaded PDF.")
