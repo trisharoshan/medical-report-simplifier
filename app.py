@@ -5,20 +5,16 @@ import pandas as pd
 from io import BytesIO
 import pytesseract
 from pdf2image import convert_from_bytes
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
-import torch
+from transformers import pipeline
 
-st.title("AI-Powered Medical Report Simplifier (Colab + OCR)")
+st.title("AI-Powered Medical Report Simplifier (Streamlit + OCR)")
 
 # -------------------------------
-# Load Hugging Face model (public, no auth needed)
+# Load lightweight Hugging Face model (works on Streamlit Cloud)
 # -------------------------------
 @st.cache_resource
 def load_model():
-    tokenizer = AutoTokenizer.from_pretrained("nomic-ai/gpt4all-j")
-    model = AutoModelForCausalLM.from_pretrained("nomic-ai/gpt4all-j")
-    generator = pipeline("text-generation", model=model, tokenizer=tokenizer, device=0, torch_dtype=torch.float16)
-    return generator
+    return pipeline("text2text-generation", model="google/flan-t5-small")
 
 generator = load_model()
 
@@ -168,6 +164,7 @@ if uploaded_file:
         """
 
         with st.spinner(f"Simplifying report on page {i+1}..."):
-            simplified = generator(prompt, max_new_tokens=500, do_sample=True, temperature=0.7)[0]['generated_text']
+            result = generator(prompt, max_length=500)
+            simplified = result[0]["generated_text"]
             st.subheader("Patient-Friendly Explanation")
             st.text(simplified)
