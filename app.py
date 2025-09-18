@@ -1,4 +1,3 @@
-%%writefile app.py
 import streamlit as st
 import PyPDF2
 from difflib import get_close_matches
