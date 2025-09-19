@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Medical Report Simplifier</title>
+  <style>
+    /* Root variables for easy theming */
+    :root {
+      --bg: #e9f0fb;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --accent: #0f62fe;
+      --accent-light: #4093ff;
+      --radius: 16px;
+      --shadow: 0 8px 30px rgba(14, 30, 37, 0.1);
+      --font-primary: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      --transition-speed: 0.3s;
+    }
+
+    /* Reset & base */
+    * {
+      box-sizing: border-box;
+      transition: background-color var(--transition-speed), color var(--transition-speed);
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: #0f1724;
+      font-family: var(--font-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color var(--transition-speed);
+    }
+    a:hover {
+      color: var(--accent-light);
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .logo {
+      height: 44px;
+      width: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0f62fe, #6f5ef8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+      user-select: none;
+      letter-spacing: 1.2px;
+      box-shadow: 0 3px 10px rgba(15, 98, 254, 0.4);
+      cursor: default;
+    }
+    header strong {
+      font-size: 24px;
+      margin-left: 10px;
+      color: #1a202c;
+      user-select: none;
+      letter-spacing: 1px;
+    }
+
+    nav button {
+      background: none;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      user-select: none;
+      transition: all var(--transition-speed);
+      margin-left: 10px;
+      letter-spacing: 0.03em;
+    }
+    nav button:hover:not(.active) {
+      background: rgba(15, 98, 254, 0.1);
+      color: var(--accent);
+    }
+    nav button.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 4px 15px rgba(15, 98, 254, 0.6);
+    }
+
+    main {
+      max-width: 980px;
+      margin: 40px auto 60px;
+      padding: 0 20px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      padding: 30px 32px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 32px;
+      transition: box-shadow 0.4s ease;
+    }
+    .card:hover {
+      box-shadow: 0 12px 40px rgba(14, 30, 37, 0.15);
+    }
+
+    /* Home Section */
+    #home h1 {
+      font-size: 2.8rem;
+      color: #ef4444;
+      text-shadow: 3px 3px 8px rgba(239, 68, 68, 0.3);
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+    #home p {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 25px;
+      color: #374151;
+      letter-spacing: 0.015em;
+    }
+    #home p u {
+      text-decoration-color: var(--accent);
+    }
+    .image-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .image-row img {
+      flex: 1 1 30%;
+      min-width: 260px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 16px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.18);
+      cursor: pointer;
+      transition: transform 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease;
+      user-select: none;
+    }
+    .image-row img:hover {
+      opacity: 0.85;
+      transform: scale(1.05);
+      box-shadow: 0 8px 25px rgba(15, 98, 254, 0.35);
+    }
+
+    /* Buttons */
+    .btn {
+      background: var(--accent);
+      color: white;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 17px;
+      user-select: none;
+      box-shadow: 0 5px 15px rgba(15, 98, 254, 0.4);
+      transition: background-color 0.35s ease, box-shadow 0.35s ease, transform 0.15s ease;
+      letter-spacing: 0.02em;
+    }
+    .btn:hover {
+      background: #074ee8;
+      box-shadow: 0 10px 30px rgba(7, 78, 232, 0.6);
+      transform: translateY(-2px);
+    }
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 12px rgba(7, 78, 232, 0.5);
+    }
+
+    /* Simplify Section */
+    #simplify h2 {
+      font-weight: 800;
+      font-size: 2.1rem;
+      margin-bottom: 20px;
+      color: #1f2937;
+      letter-spacing: 0.02em;
+    }
+    #dropzone {
+      border: 3px dashed #a3aed0;
+      padding: 30px;
+      text-align: center;
+      border-radius: 18px;
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: #64748b;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+      margin-bottom: 15px;
+    }
+    #dropzone:hover {
+      border-color: var(--accent);
+      background-color: #f0f5ff;
+      color: var(--accent);
+    }
+    #dropzone:active {
+      background-color: #d4e3ff;
+    }
+
+    /* Panels */
+    .panel {
+      background: #f3f6fb;
+      border-radius: 16px;
+      padding: 18px 22px;
+      min-height: 160px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: #334155;
+      font-size: 1rem;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.07);
+      user-select: text;
+      margin-bottom: 30px;
+      transition: background-color 0.3s ease;
+    }
+    .panel:empty {
+      color: #94a3b8;
+      font-style: italic;
+      user-select: none;
+    }
+
+    /* About Section */
+    #about h2 {
+      font-size: 2.2rem;
+      margin-bottom: 18px;
+      color: #1e293b;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    #about p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: #475569;
+      margin-bottom: 18px;
+      letter-spacing: 0.015em;
+    }
+    #about img {
+      max-width: 100%;
+      border-radius: 18px;
+      box-shadow: 0 8px 30px rgba(14, 30, 37, 0.1);
+      margin: 22px 0;
+      user-select: none;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      transition: transform 0.3s ease;
+    }
+    #about img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 38px rgba(15, 98, 254, 0.25);
+    }
+
+    /* Table Styling */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 8px;
+      font-size: 1rem;
+      color: #334155;
+      letter-spacing: 0.02em;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 12px 18px;
+      text-align: left;
+      transition: background-color 0.3s ease;
+    }
+    th {
+      background: #f0f5ff;
+      font-weight: 700;
+      color: #0f62fe;
+      letter-spacing: 0.03em;
+    }
+    tr:nth-child(even) {
+      background-color: #f9fbff;
+    }
+    tr:hover {
+      background-color: #dbeafe;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 28px 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      user-select: none;
+      border-top: 1px solid #d1d5db;
+      background-color: #fff;
+      position: sticky;
+      bottom: 0;
+      z-index: 999;
+    }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .image-row img {
+        min-width: 100%;
+      }
+      main {
+        margin: 20px 16px 40px;
+      }
+      nav button {
+        font-size: 14px;
+        padding: 8px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="logo" aria-label="AI Logo">AI</div>
+      <strong>ReportSimplify</strong>
+    </div>
+    <nav role="navigation" aria-label="Primary navigation">
+      <button id="tab-home" class="active" aria-controls="home" aria-selected="true" role="tab">Home</button>
+      <button id="tab-simplify" aria-controls="simplify" aria-selected="false" role="tab">Simplify Report</button>
+      <button id="tab-about" aria-controls="about" aria-selected="false" role="tab">About</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Home -->
+    <section id="home" class="card" role="tabpanel" aria-labelledby="tab-home">
+      <h1>Simplify your lab report</h1>
+      <p>Upload your lab report and you will get it in a simplified version.</p>
+      <div class="image-row" aria-label="Sample medical images">
+        <img class="image" style="box-shadow: 4px 4px 5px black;" src="https://images.unsplash.com/photo-1584036561566-baf8f5f1b144?auto=format&fit=crop&w=600&q=60" alt="Medical Lab Report 1" loading="lazy">
+        <img class="image" style="box-shadow: 4px 4px 6px black;" src="https://tse3.mm.bing.net/th/id/OIP.ON1wLqjU95_VAwObkEuZjwHaEK?pid=Api&P=0&h=180" alt="Medical Lab Report 2" loading="lazy">
+        <img class="image" style="box-shadow: 4px 4px 6px black;" src="https://f6publishing.blob.core.windows.net/6ff42bb4-9f9a-41fa-bee9-9521440c2dd6/WJC-14-427-g002.png" alt="Medical Lab Report 3" loading="lazy">
+      </div>
+      <p><button class="btn" id="cta-simplify">Get Started</button></p>
+    </section>
+
+    <!-- Simplify -->
+    <section id="simplify" class="card" style="display:none" role="tabpanel" aria-labelledby="tab-simplify" tabindex="0">
+      <h2>Simplify a Medical Report</h2>
+      <div class="upload-area" id="dropzone" role="button" tabindex="0" aria-label="Upload or drop a text file here">Click or drop a <b>.txt</b> file here</div>
+      <div style="margin-top:15px;">
+        <button class="btn" id="simplifyBtn">Simplify Report</button>
+      </div>
+
+      <h3>Original Report</h3>
+      <div class="panel" id="originalPanel" aria-live="polite" aria-atomic="true">No report loaded</div>
+
+      <h3>Simplified Summary</h3>
+      <div class="panel" id="simplifiedPanel" aria-live="polite" aria-atomic="true">Summary will appear here</div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="card" style="display:none" role="tabpanel" aria-labelledby="tab-about" tabindex="0">
+      <h2>About</h2>
+      <p>This AI-powered simplifier converts complex lab reports into patient-friendly language for easier understanding.</p>
+      <p><strong>EXAMPLE:</strong></p>
+      <p>We had a lab report in this type →</p>
+      <img src="https://i.pinimg.com/736x/22/03/a3/2203a303fca4fc2b70dd8d9518fcab36.jpg" 
+           alt="Example medical report" 
+           style="max-width:500px; width:100%; border-radius:12px; margin:20px auto 30px; display:block; box-shadow: 0 10px 30px rgba(0,0,0,0.1);"><br>
+      <p>And we converted it into this form →</p>
+      <p>
+        <p>Hi Yash (21 yrs, Male),</p>
+        <br>
+        <p>I’ve gone through your Complete Blood Count (CBC) report. Here are the main points, and what they might mean:</p>
+        <table>
+            <thead>
+              <tr>
+                  <th>Results</th>
+                  <th>Value At Admission</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hemoglobin (Hb): 12.5 g/dL (low; normal is ~13.0‑17.0)</td>
+                <td>Slightly Low</td>
+              </tr>
+              <tr>
+                <td>RBC count: 5.2 million/cumm (normal)</td>
+                <td>Normal</td>
+              </tr>
+              <tr>
+                <td>PCV / Packed Cell Volume (PCV): 57.5 % (high; normal ~40‑50 %)</td>
+                <td>High</td>
+              </tr>
+              <tr>
+                <td>MCV (Mean Corpuscular Volume): 87.75 fL</td>
+                <td>Normal</td>
+              </tr>
+              <tr>
+                <td>WBC count: 9000 /cumm</td>
+                <td>Normal</td>
+              </tr>
+            </tbody>
+        </table>
+      </p>
+      <p>This web-based tool allows users to easily upload and preview PDF documents directly in their browser. You can either click to select a PDF file or simply drag and drop it into the designated area.</p>
+    </section>
+  </main>
+
+  <footer>© 2025 MedSimplify</footer>
+
+  <script>
+    // Tabs handling
+    const home = document.getElementById('home'),
+          simplify = document.getElementById('simplify'),
+          about = document.getElementById('about'),
+          tabs = document.querySelectorAll('nav button');
+
+    function show(sec) {
+      [home, simplify, about].forEach(s => {
+        s.style.display = 'none';
+        s.setAttribute('aria-hidden', 'true');
+      });
+      sec.style.display = 'block';
+      sec.setAttribute('aria-hidden', 'false');
+
+      tabs.forEach(tab => {
+        tab.classList.remove('active');
+        tab.setAttribute('aria-selected', 'false');
+        tab.setAttribute('tabindex', '-1');
+      });
+
+      if (sec === home) {
+        document.getElementById('tab-home').classList.add('active');
+        document.getElementById('tab-home').setAttribute('aria-selected', 'true');
+        document.getElementById('tab-home').removeAttribute('tabindex');
+      }
+      if (sec === simplify) {
+        document.getElementById('tab-simplify').classList.add('active');
+        document.getElementById('tab-simplify').setAttribute('aria-selected', 'true');
+        document.getElementById('tab-simplify').removeAttribute('tabindex');
+        simplify.focus();
+      }
+      if (sec === about) {
+        document.getElementById('tab-about').classList.add('active');
+        document.getElementById('tab-about').setAttribute('aria-selected', 'true');
+        document.getElementById('tab-about').removeAttribute('tabindex');
+        about.focus();
+      }
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        if (tab.id === 'tab-home') show(home);
+        else if (tab.id === 'tab-simplify') show(simplify);
+        else if (tab.id === 'tab-about') show(about);
+      });
+    });
+
+    // Initial state
+    show(home);
+
+    // CTA Button from Home to Simplify
+    document.getElementById('cta-simplify').addEventListener('click', () => show(simplify));
+
+    // File upload and simplify logic
+    const dropzone = document.getElementById('dropzone');
+    const originalPanel = document.getElementById('originalPanel');
+    const simplifiedPanel = document.getElementById('simplifiedPanel');
+    const simplifyBtn = document.getElementById('simplifyBtn');
+
+    let currentText = '';
+
+    // Helper: Simulate simplification of report
+    function simplifyText(text) {
+      // This is a naive simplification:
+      // Extract sentences, highlight values, reduce jargon.
+      // Replace common lab terms with simple equivalents.
+      if (!text.trim()) return "No content to simplify.";
+
+      const replacements = [
+        [/Hemoglobin|Hb/gi, "Hemoglobin (blood protein)"],
+        [/RBC count/gi, "Red blood cell count"],
+        [/PCV|Packed Cell Volume/gi, "Blood cell volume"],
+        [/MCV|Mean Corpuscular Volume/gi, "Average size of red blood cells"],
+        [/WBC count/gi, "White blood cell count"],
+        [/g\/dL/gi, "grams per deciliter"],
+        [/cumm/gi, "cubic millimeter"],
+        [/normal/gi, "within the usual range"],
+        [/high/gi, "above usual levels"],
+        [/low/gi, "below usual levels"],
+        [/patient/gi, "you"],
+      ];
+
+      let simplified = text;
+
+      replacements.forEach(([regex, replacement]) => {
+        simplified = simplified.replace(regex, replacement);
+      });
+
+      // Break into simpler sentences by splitting on '.' or ';'
+      const sentences = simplified.split(/[\.\;\n]+/).map(s => s.trim()).filter(Boolean);
+      // Only take first 6 sentences for brevity in this demo
+      return sentences.slice(0, 6).join('. ') + '.';
+    }
+
+    // Handle file input via drop or click
+    dropzone.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.txt';
+      input.onchange = e => {
+        if (input.files.length === 0) return;
+        readFile(input.files[0]);
+      };
+      input.click();
+    });
+
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.style.borderColor = 'var(--accent)';
+      dropzone.style.backgroundColor = '#f0f5ff';
+    });
+
+    dropzone.addEventListener('dragleave', e => {
+      e.preventDefault();
+      dropzone.style.borderColor = '#a3aed0';
+      dropzone.style.backgroundColor = 'transparent';
+    });
+
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.style.borderColor = '#a3aed0';
+      dropzone.style.backgroundColor = 'transparent';
+      if (e.dataTransfer.files.length === 0) return;
+
+      const file = e.dataTransfer.files[0];
+      if (!file.name.endsWith('.txt')) {
+        alert("Please upload a .txt file only.");
+        return;
+      }
+      readFile(file);
+    });
+
+    function readFile(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        currentText = e.target.result;
+        originalPanel.textContent = currentText;
+        simplifiedPanel.textContent = "Click 'Simplify Report' to get summary";
+      };
+      reader.onerror = e => {
+        alert("Error reading file");
+      };
+      reader.readAsText(file);
+    }
+
+    simplifyBtn.addEventListener('click', () => {
+      if (!currentText.trim()) {
+        alert("Please upload a .txt file first.");
+        return;
+      }
+      simplifiedPanel.textContent = "Simplifying...";
+      setTimeout(() => {
+        simplifiedPanel.textContent = simplifyText(currentText);
+      }, 400); // simulate async
+    });
+  </script>
+</body>
+</html>
